@@ -2,61 +2,43 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Battery Station Scanner</title>
+  <title>LSM Battery Scanner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body { font-family: sans-serif; background: #f0f2f5; text-align: center; padding: 20px; }
     .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
     #reader { width: 100%; min-height: 250px; background: #000; border-radius: 8px; margin-bottom: 10px; display: none; }
-    input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; }
-    button { padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    .btn-scan { background: #3498db; width: 100%; }
-    .btn-in { background: #27ae60; }
-    .btn-out { background: #e67e22; }
-    #status { margin-top: 15px; font-weight: bold; }
+    input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
     
-/* 5. THE BUTTON CONTAINER (This is what creates the space) */
-    .btn-container { 
-      display: flex; 
-      justify-content: center;
-      gap: 15px; /* <--- This creates the gap between buttons */
-      margin-top: 15px; 
-    }
-
+    .btn-scan { background: #3498db; width: 100%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; }
+    
+    .btn-container { display: flex; justify-content: center; gap: 15px; margin-top: 15px; }
+    
+    /* Small width buttons as requested */
     .btn-in, .btn-out {
       width: 100px;
-      padding: 12px; /* Taller buttons for mobile fingers */
+      padding: 12px;
       border: none;
       border-radius: 8px;
       color: white;
       font-weight: bold;
-      font-size: 14px;
       cursor: pointer;
     }
-
     .btn-in { background: #27ae60; }
     .btn-out { background: #d35400; }
-    button:active { transform: scale(0.95); opacity: 0.9; }
-
+    
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    button:active { transform: scale(0.95); }
     #status { margin-top: 20px; font-weight: bold; color: #7f8c8d; }
-    
-    
   </style>
 </head>
-
 <body>
   <div class="card">
     <div style="margin-bottom: 15px;">
-      <span style="font-size: 36px; font-weight: 900; color: #FF4500;">L</span>
-      <span style="font-size: 36px; font-weight: 900; color: #FF4500; margin-left: -5px;">S</span>
-      <span style="font-size: 36px; font-weight: 900; color: #FF4500; margin-left: -5px;">M</span>
-      <div style="font-size: 10px; color: #657273; letter-spacing: 2px; margin-top: -5px; font-weight: bold;">
-        LAO SMART MOBILITY
-      </div>
+      <span style="font-size: 36px; font-weight: 900; color: #FF4500;">LSM</span>
+      <div style="font-size: 10px; color: #657273; letter-spacing: 2px; font-weight: bold;">LAO SMART MOBILITY</div>
     </div>
-
-    <h2>🔋  Battery Swaps by Somphone</h2>
 
     <div id="reader"></div>
     <button id="scanBtn" class="btn-scan" onclick="toggleCamera()">📷 OPEN SCANNER</button>
@@ -74,47 +56,46 @@
   </div>
 
   <script>
+    const scriptURL = "PASTE_YOUR_GOOGLE_WEB_APP_URL_HERE"; // <--- VERY IMPORTANT
+
     let scanner;
     let isScanning = false;
+
+    function beep() {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    }
 
     function toggleCamera() {
       const readerDiv = document.getElementById('reader');
       const scanBtn = document.getElementById('scanBtn');
-      
       if (!isScanning) {
         readerDiv.style.display = 'block';
         scanBtn.innerText = "🛑 CLOSE SCANNER";
         startScanner();
       } else {
-        if (scanner) {
-          scanner.stop().then(() => {
-            readerDiv.style.display = 'none';
-            scanBtn.innerText = "📷 OPEN SCANNER";
-          }).catch(e => console.log(err));
-        } else {
+        if (scanner) scanner.stop().then(() => {
           readerDiv.style.display = 'none';
           scanBtn.innerText = "📷 OPEN SCANNER";
-        }
+        });
       }
       isScanning = !isScanning;
     }
 
     function startScanner() {
       scanner = new Html5Qrcode("reader");
-      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-      
-      scanner.start(
-        { facingMode: "environment" }, 
-        config,
-        (text) => {
-          document.getElementById('bid').value = text;
-          document.getElementById('status').innerText = "✅ Scanned: " + text;
-          document.getElementById('status').style.color = "green";
-          toggleCamera(); // Auto-close camera after success
-        }
-      ).catch(err => {
-        document.getElementById('status').innerText = "Camera Error: " + err;
-        document.getElementById('status').style.color = "red";
+      scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+        beep();
+        document.getElementById('bid').value = text;
+        toggleCamera();
       });
     }
 
@@ -123,10 +104,8 @@
       const btnIn = document.getElementById('btnIn');
       const btnOut = document.getElementById('btnOut');
 
-      // Disable buttons so they don't click twice
       btnIn.disabled = true;
       btnOut.disabled = true;
-
       status.innerText = "⏳ Saving to Google Sheets...";
       status.style.color = "orange";
 
@@ -137,31 +116,30 @@
         type: type
       };
 
-      // This is the most stable way to talk to your Code.gs
-      google.script.run
-        .withSuccessHandler(function(msg) {
-          beep(); // Play the sound
-          status.innerText = "✅ " + msg;
-          status.style.color = "green";
-          
-          // Clear inputs
-          document.getElementById('bid').value = "";
-          document.getElementById('vno').value = "";
-          document.getElementById('mil').value = "";
-          
-          // Re-enable buttons
-          btnIn.disabled = false;
-          btnOut.disabled = false;
-        })
-        .withFailureHandler(function(err) {
-          status.innerText = "❌ Error: " + err;
-          status.style.color = "red";
-          btnIn.disabled = false;
-          btnOut.disabled = false;
-        })
-        .webProcessLog(data); // This calls the function in Code.gs
-    } 
+      // FETCH method for GitHub hosting
+      fetch(scriptURL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(data)
+      })
+      .then(() => {
+        beep();
+        status.innerText = "✅ Success: Logged " + type;
+        status.style.color = "green";
+        document.getElementById('bid').value = "";
+        document.getElementById('vno').value = "";
+        document.getElementById('mil').value = "";
+        btnIn.disabled = false;
+        btnOut.disabled = false;
+      })
+      .catch(err => {
+        status.innerText = "❌ Error: Check Connection";
+        status.style.color = "red";
+        btnIn.disabled = false;
+        btnOut.disabled = false;
+      });
+    }
   </script>
-  
 </body>
 </html>
