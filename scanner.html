@@ -120,8 +120,15 @@
 
     function process(type) {
       const status = document.getElementById('status');
-      status.innerText = "Saving to Google Sheets...";
-      status.style.color = "blue";
+      const btnIn = document.getElementById('btnIn');
+      const btnOut = document.getElementById('btnOut');
+
+      // Disable buttons so they don't click twice
+      btnIn.disabled = true;
+      btnOut.disabled = true;
+
+      status.innerText = "⏳ Saving to Google Sheets...";
+      status.style.color = "orange";
 
       const data = {
         batteryId: document.getElementById('bid').value,
@@ -130,27 +137,30 @@
         type: type
       };
 
-      // FIXED: Added quotes around the URL
-      const scriptURL = "https://script.google.com/macros/s/AKfycbyqLYdc82fSP3K7CN0dwSkHw6nxKDzkb-1R5SOKzlkW-OsDnBfGnRt1Fe7YWxm1ysB4/exec";
-
-      fetch(scriptURL, {
-        method: "POST",
-        mode: "no-cors", // Required for Google Apps Script fetch in some environments
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" }
-      })
-      .then(() => {
-        status.innerText = "✅ Success! Logged " + type;
-        status.style.color = "green";
-        document.getElementById('bid').value = "";
-        document.getElementById('vno').value = "";
-        document.getElementById('mil').value = "";
-      })
-      .catch(err => {
-        status.innerText = "❌ Error: " + err;
-        status.style.color = "red";
-      });
-    }
+      // This is the most stable way to talk to your Code.gs
+      google.script.run
+        .withSuccessHandler(function(msg) {
+          beep(); // Play the sound
+          status.innerText = "✅ " + msg;
+          status.style.color = "green";
+          
+          // Clear inputs
+          document.getElementById('bid').value = "";
+          document.getElementById('vno').value = "";
+          document.getElementById('mil').value = "";
+          
+          // Re-enable buttons
+          btnIn.disabled = false;
+          btnOut.disabled = false;
+        })
+        .withFailureHandler(function(err) {
+          status.innerText = "❌ Error: " + err;
+          status.style.color = "red";
+          btnIn.disabled = false;
+          btnOut.disabled = false;
+        })
+        .webProcessLog(data); // This calls the function in Code.gs
+    } 
   </script>
   
 </body>
