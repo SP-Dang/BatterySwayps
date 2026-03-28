@@ -80,14 +80,21 @@
     function toggleCamera() {
       const readerDiv = document.getElementById('reader');
       const scanBtn = document.getElementById('scanBtn');
+      
       if (!isScanning) {
         readerDiv.style.display = 'block';
         scanBtn.innerText = "🛑 CLOSE SCANNER";
         startScanner();
       } else {
-        stopScanner();
-        readerDiv.style.display = 'none';
-        scanBtn.innerText = "📷 OPEN SCANNER";
+        if (scanner) {
+          scanner.stop().then(() => {
+            readerDiv.style.display = 'none';
+            scanBtn.innerText = "📷 OPEN SCANNER";
+          }).catch(e => console.log(err));
+        } else {
+          readerDiv.style.display = 'none';
+          scanBtn.innerText = "📷 OPEN SCANNER";
+        }
       }
       isScanning = !isScanning;
     }
@@ -95,22 +102,20 @@
     function startScanner() {
       scanner = new Html5Qrcode("reader");
       const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-      scanner.start({ facingMode: "environment" }, config,
+      
+      scanner.start(
+        { facingMode: "environment" }, 
+        config,
         (text) => {
           document.getElementById('bid').value = text;
           document.getElementById('status').innerText = "✅ Scanned: " + text;
           document.getElementById('status').style.color = "green";
-          toggleCamera();
-        },
-        (err) => {}
+          toggleCamera(); // Auto-close camera after success
+        }
       ).catch(err => {
         document.getElementById('status').innerText = "Camera Error: " + err;
         document.getElementById('status').style.color = "red";
       });
-    }
-
-    function stopScanner() {
-      if (scanner) scanner.stop().catch(e => console.log(e));
     }
 
     function process(type) {
@@ -125,17 +130,21 @@
         type: type
       };
 
-      // Replace with your deployed Apps Script Web App URL
-      fetch(https://script.google.com/macros/s/AKfycbyqLYdc82fSP3K7CN0dwSkHw6nxKDzkb-1R5SOKzlkW-OsDnBfGnRt1Fe7YWxm1ysB4/exec, {
+      // FIXED: Added quotes around the URL
+      const scriptURL = "https://script.google.com/macros/s/AKfycbyqLYdc82fSP3K7CN0dwSkHw6nxKDzkb-1R5SOKzlkW-OsDnBfGnRt1Fe7YWxm1ysB4/exec";
+
+      fetch(scriptURL, {
         method: "POST",
+        mode: "no-cors", // Required for Google Apps Script fetch in some environments
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" }
       })
-      .then(res => res.text())
-      .then(msg => {
-        status.innerText = "✅ " + msg;
+      .then(() => {
+        status.innerText = "✅ Success! Logged " + type;
         status.style.color = "green";
         document.getElementById('bid').value = "";
+        document.getElementById('vno').value = "";
+        document.getElementById('mil').value = "";
       })
       .catch(err => {
         status.innerText = "❌ Error: " + err;
@@ -143,5 +152,6 @@
       });
     }
   </script>
+  
 </body>
 </html>
